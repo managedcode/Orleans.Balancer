@@ -50,17 +50,16 @@ public sealed class ActivationSheddingFilter : IIncomingGrainCallFilter, IDispos
     /// <inheritdoc />
     public async Task Invoke(IIncomingGrainCallContext context)
     {
+        await context.Invoke();
+        
         if (_surplusActivations > 0 &&
             (context.Grain is not SystemTarget) &&
             context.Grain is Grain grain && CanDeactivate(grain))
         {
             _ = Interlocked.Decrement(ref _surplusActivations);
-
             // allow allow placement strategy to relocate grain
             _runtime.DeactivateOnIdle(grain);
         }
-
-        await context.Invoke();
     }
 
     private void Initialize()
@@ -251,7 +250,7 @@ public sealed class ActivationSheddingFilter : IIncomingGrainCallFilter, IDispos
             {"orleans.cluster.siloCount", _activeSilos.Count.ToString()},
             {"orleans.cluster.totalActivations", totalActivations.ToString()},
             {"orleans.silo.activations", myActivations.ToString()},
-            {"orleans.silo.activationsToCull", _surplusActivations.ToString()},
+            {"orleans.silo.activationsToCut", _surplusActivations.ToString()},
             {"orleans.silo.overagePercent", $"{overagePercent}%"},
             {"orleans.silo.overageThresholdPercent", $"{overagePercentTrigger}%"}
         };

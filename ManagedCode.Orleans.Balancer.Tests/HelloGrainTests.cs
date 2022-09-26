@@ -12,6 +12,7 @@ namespace ManagedCode.Orleans.Balancer.Tests;
 public class SiloTests 
 {
     private readonly ITestOutputHelper _outputHelper;
+    private volatile int _errors;
 
     public SiloTests(ITestOutputHelper outputHelper)
     {
@@ -37,7 +38,9 @@ public class SiloTests
     private async Task ReactivateGrains(TestCluster cluster, Guid[] guids)
     {
         int count = 0;
-        _outputHelper.WriteLine($"ReactivateGrains for: {guids.Length} grains.");
+        if(Debugger.IsAttached)
+            _outputHelper.WriteLine($"ReactivateGrains for: {guids.Length} grains.");
+        
         var sw = Stopwatch.StartNew();
         foreach (var item in guids)
         {
@@ -51,7 +54,9 @@ public class SiloTests
                 }
                 catch (Exception e)
                 {
-                    _outputHelper.WriteLine($"-------!!!!!!!!!!Exception");
+                    Interlocked.Increment(ref _errors);
+                    if(Debugger.IsAttached)
+                        _outputHelper.WriteLine($"-------!!!!!!!!!!Exception");
                 }
             } while (true);
            
@@ -59,7 +64,9 @@ public class SiloTests
             count++;
         }
         sw.Stop();
-        _outputHelper.WriteLine($"ReactivateGrains for: {guids.Length}; count:{count}; time:{sw.Elapsed}");
+        
+        if(Debugger.IsAttached)
+            _outputHelper.WriteLine($"ReactivateGrains for: {guids.Length}; count:{count}; time:{sw.Elapsed}");
     }
     private async Task SiloTest(int iteration, bool enableBalance)
     {
@@ -122,6 +129,7 @@ public class SiloTests
 
         _outputHelper.WriteLine($"Total ActivationCount:{TestGrain.ActivationCount}");
         _outputHelper.WriteLine($"Total DeactivationCount:{TestGrain.DeactivationCount}");
+        _outputHelper.WriteLine($"Total ERRORS:{_errors}");
         
     }
     
@@ -132,6 +140,7 @@ public class SiloTests
     [InlineData(100)]
     public async Task ClearSiloTest(int itereations)
     {
+        _errors = 0;
         await SiloTest(itereations, false);
     }
     
@@ -142,12 +151,14 @@ public class SiloTests
     [InlineData(100)]
     public async Task BalancerSiloTest(int itereations)
     {
+        _errors = 0;
         await SiloTest(itereations, true);
     }
     
     [Fact]
     public async Task SingleThread()
     {
+        _errors = 0;
         var builder = new TestClusterBuilder();
         builder.AddSiloBuilderConfigurator<TestSiloConfigurations>();
         
@@ -174,7 +185,9 @@ public class SiloTests
             }
             catch (Exception e)
             {
-                _outputHelper.WriteLine($"!!!Error:{e.Message}");
+                Interlocked.Increment(ref _errors);
+                if(Debugger.IsAttached)
+                  _outputHelper.WriteLine($"!!!Error:{e.Message}");
             }
            
         }
@@ -191,6 +204,7 @@ public class SiloTests
 
         _outputHelper.WriteLine($"Total ActivationCount:{TestGrainInt.ActivationCount}");
         _outputHelper.WriteLine($"Total DeactivationCount:{TestGrainInt.DeactivationCount}");
+        _outputHelper.WriteLine($"Total ERRORS:{_errors}");
         
     }
 }

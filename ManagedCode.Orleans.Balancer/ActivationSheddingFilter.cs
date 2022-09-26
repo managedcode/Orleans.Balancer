@@ -18,7 +18,7 @@ public sealed class ActivationSheddingFilter : IIncomingGrainCallFilter, IDispos
     private readonly SiloAddress _currentSilo;
     private readonly ActivationSheddingOptions _options;
     private HashSet<SiloAddress> _activeSilos;
-    private int _surplusActivations;
+    private volatile int _surplusActivations;
     private bool _isRebalancing;
 
     private readonly SemaphoreSlim _lock = new SemaphoreSlim(1, 1);
@@ -57,9 +57,12 @@ public sealed class ActivationSheddingFilter : IIncomingGrainCallFilter, IDispos
             context.Grain is Grain grain && CanDeactivate(grain))
         {
             _ = Interlocked.Decrement(ref _surplusActivations);
+
             // allow allow placement strategy to relocate grain
             _runtime.DeactivateOnIdle(grain);
         }
+
+
     }
 
     private void Initialize()

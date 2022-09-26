@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Orleans.Hosting;
+using Orleans.Runtime;
 
 namespace ManagedCode.Orleans.Balancer;
 
@@ -14,6 +15,7 @@ public static class SiloBuilderExtensions
     {
         siloBuilder.ConfigureServices(((context, collection) =>
         {
+           // collection.AddSingleton<PlacementStrategy, MyPlacementStrategy>();
             collection.AddOptions<ActivationSheddingOptions>()
                 .Bind(context.Configuration.GetSection("ActivationShedding"))
                 // ReSharper disable once ConvertClosureToMethodGroup

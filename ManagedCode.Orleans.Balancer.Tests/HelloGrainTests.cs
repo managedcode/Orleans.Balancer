@@ -64,9 +64,11 @@ public class SiloTests
     private async Task SiloTest(int iteration, bool enableBalance)
     {
         var builder = new TestClusterBuilder();
-        if(enableBalance)
+        if (enableBalance)
+        {
             builder.AddSiloBuilderConfigurator<TestSiloConfigurations>();
-        
+        }
+
         builder.Options.InitialSilosCount = 1;
         
         var cluster = builder.Build();
@@ -81,7 +83,7 @@ public class SiloTests
             if (i % 20 == 0)
             {
                 await cluster.StartAdditionalSiloAsync();
-                _outputHelper.WriteLine("Cluster is added");
+                _outputHelper.WriteLine("Cluster is added - "+i);
             }
             
             var sw = Stopwatch.StartNew();
@@ -123,15 +125,73 @@ public class SiloTests
         
     }
     
-    [Fact]
-    public async Task ClearSiloTest()
+    [Theory]
+    [InlineData(10)]
+    [InlineData(25)]
+    [InlineData(80)]
+    [InlineData(100)]
+    public async Task ClearSiloTest(int itereations)
     {
-        await SiloTest(80, false);
+        await SiloTest(itereations, false);
+    }
+    
+    [Theory]
+    [InlineData(10)]
+    [InlineData(25)]
+    [InlineData(80)]
+    [InlineData(100)]
+    public async Task BalancerSiloTest(int itereations)
+    {
+        await SiloTest(itereations, true);
     }
     
     [Fact]
-    public async Task BalancerSiloTest()
+    public async Task SingleThread()
     {
-        await SiloTest(80, true);
+        var builder = new TestClusterBuilder();
+        builder.AddSiloBuilderConfigurator<TestSiloConfigurations>();
+        
+
+        builder.Options.InitialSilosCount = 1;
+        
+        var cluster = builder.Build();
+        await cluster.DeployAsync();
+
+        var rnd = new Random();
+        for (int i = 0; i < 800_000; i++)
+        {
+            if (i % 100_000 == 0)
+            {
+                await cluster.StartAdditionalSiloAsync();
+                await cluster.StartAdditionalSiloAsync();
+                _outputHelper.WriteLine("Cluster is added - "+i);
+            }
+            
+            var hello = cluster.Client.GetGrain<ITestGrainInt>(rnd.Next(0,30_000));
+            try
+            {
+                var id = await hello.Do();
+            }
+            catch (Exception e)
+            {
+                _outputHelper.WriteLine($"!!!Error:{e.Message}");
+            }
+           
+        }
+
+        var stat = await GetStatistics(cluster);
+        int count = 0;
+        
+        foreach (var silo in stat)
+        {
+            count++;
+            _outputHelper.WriteLine($"Silo:{count}; ActivationCount:{silo.ActivationCount}; RecentlyUsedActivationCount:{silo.RecentlyUsedActivationCount}; SentMessages:{silo.SentMessages}");
+            _outputHelper.WriteLine($"        SentMessages:{silo.SentMessages}; ReceivedMessages:{silo.ReceivedMessages};");
+        }
+
+        _outputHelper.WriteLine($"Total ActivationCount:{TestGrainInt.ActivationCount}");
+        _outputHelper.WriteLine($"Total DeactivationCount:{TestGrainInt.DeactivationCount}");
+        
     }
 }
+

@@ -23,6 +23,7 @@ public static class SiloBuilderExtensions
             // .ValidateDataAnnotations();
         }));
 
+        siloBuilder.AddStartupTask<BalancerStartupTask>();
         siloBuilder.AddIncomingGrainCallFilter<ActivationSheddingFilter>();
 
         return siloBuilder;

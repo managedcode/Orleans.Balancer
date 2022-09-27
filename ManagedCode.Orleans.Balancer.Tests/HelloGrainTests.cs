@@ -161,8 +161,6 @@ public class SiloTests
         _errors = 0;
         var builder = new TestClusterBuilder();
         builder.AddSiloBuilderConfigurator<TestSiloConfigurations>();
-        
-
         builder.Options.InitialSilosCount = 1;
         
         var cluster = builder.Build();
@@ -206,6 +204,57 @@ public class SiloTests
         _outputHelper.WriteLine($"Total DeactivationCount:{TestGrainInt.DeactivationCount}");
         _outputHelper.WriteLine($"Total ERRORS:{_errors}");
         
+    }
+
+    [Fact]
+    public async Task SchreddingGrains()
+    {
+        var builder = new TestClusterBuilder();
+        builder.AddSiloBuilderConfigurator<TestSiloConfigurations>();
+        builder.Options.InitialSilosCount = 1;
+        
+        var cluster = builder.Build();
+        await cluster.DeployAsync();
+
+        for (int i = 0; i < 10; i++)
+        {
+            var hello1 = await cluster.Client.GetGrain<ITestGrainInt>(i).Do();
+            var hello2 = await cluster.Client.GetGrain<ITestGrain>(Guid.NewGuid()).Do();
+        }
+
+        var x = 5;
+        var grain = cluster.Client.GetGrain<IManagementGrain>(0);
+        var hosts = await grain.GetHosts();
+        var xx1 = await grain.GetSimpleGrainStatistics();
+        var xx2 = await grain.GetRuntimeStatistics( new []{ hosts.First().Key });
+        var xx3 = await grain.GetDetailedGrainStatistics(hostsIds: new []{hosts.First().Key});
+
+
+        await Task.Delay(TimeSpan.FromSeconds(10));
+        
+        for (int i = 0; i < 10; i++)
+        {
+            var hello1 = await cluster.Client.GetGrain<ITestGrainInt>(i).Do();
+            var hello2 = await cluster.Client.GetGrain<ITestGrain>(Guid.NewGuid()).Do();
+        }
+        
+        await Task.Delay(TimeSpan.FromSeconds(10));
+        
+        for (int i = 0; i < 10; i++)
+        {
+            var hello1 = await cluster.Client.GetGrain<ITestGrainInt>(i).Do();
+            var hello2 = await cluster.Client.GetGrain<ITestGrain>(Guid.NewGuid()).Do();
+        }
+        
+        await Task.Delay(TimeSpan.FromSeconds(30));
+        
+        xx1 = await grain.GetSimpleGrainStatistics();
+        xx2 = await grain.GetRuntimeStatistics( new []{ hosts.First().Key });
+        xx3 = await grain.GetDetailedGrainStatistics(hostsIds: new []{hosts.First().Key});
+
+        if(Debugger.IsAttached)
+            Debugger.Break();
+
     }
 }
 

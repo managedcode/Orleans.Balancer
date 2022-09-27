@@ -26,7 +26,7 @@ public sealed class ActivationSheddingFilter : IIncomingGrainCallFilter, IDispos
     private static readonly EventId StartEvent = new EventId(58001, "Starting");
     private static readonly EventId SheddingEvent = new EventId(58002, "Shedding");
     private static readonly EventId StopEvent = new EventId(58003, "Stopping");
-
+    
     public ActivationSheddingFilter(
         ILogger<ActivationSheddingFilter> logger,
         IOptions<ActivationSheddingOptions> digitalTwinOptions,
@@ -43,7 +43,6 @@ public sealed class ActivationSheddingFilter : IIncomingGrainCallFilter, IDispos
         _managementGrain = grainFactory.GetGrain<IManagementGrain>(0);
         _cts = new CancellationTokenSource();
         _activeSilos = new HashSet<SiloAddress>();
-
         Initialize();
     }
 
@@ -51,6 +50,8 @@ public sealed class ActivationSheddingFilter : IIncomingGrainCallFilter, IDispos
     public async Task Invoke(IIncomingGrainCallContext context)
     {
         await context.Invoke();
+
+        BalancerStartupTask.AddGrain(context.Grain);
         
         if (_surplusActivations > 0 &&
             (context.Grain is not SystemTarget) &&
@@ -61,8 +62,7 @@ public sealed class ActivationSheddingFilter : IIncomingGrainCallFilter, IDispos
             // allow allow placement strategy to relocate grain
             _runtime.DeactivateOnIdle(grain);
         }
-
-
+        
     }
 
     private void Initialize()

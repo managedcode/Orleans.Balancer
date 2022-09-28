@@ -5,7 +5,9 @@ namespace ManagedCode.Orleans.Balancer;
 internal static class TaskUtility
 {
     internal static async Task RepeatEvery(Func<Task> func,
-        TimeSpan interval, CancellationToken cancellationToken, ILogger<ActivationSheddingFilter> logger)
+        TimeSpan interval,
+        CancellationToken cancellationToken,
+        ILogger<ActivationSheddingFilter> logger)
     {
         while (!cancellationToken.IsCancellationRequested)
         {
@@ -18,7 +20,7 @@ internal static class TaskUtility
                 logger.LogError(ex, "TaskUtility.RepeatEvery task failed: {ErrorMessage}", ex.Message);
             }
 
-            Task task = Task.Delay(interval, cancellationToken);
+            var task = Task.Delay(interval, cancellationToken);
 
             try
             {

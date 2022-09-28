@@ -218,7 +218,7 @@ public class SiloTests
     {
         var builder = new TestClusterBuilder();
         builder.AddSiloBuilderConfigurator<TestSiloConfigurations>();
-        builder.Options.InitialSilosCount = 1;
+        builder.Options.InitialSilosCount = 3;
 
         var cluster = builder.Build();
         await cluster.DeployAsync();
@@ -228,8 +228,7 @@ public class SiloTests
             var hello1 = await cluster.Client.GetGrain<ITestGrainInt>(i).Do();
             var hello2 = await cluster.Client.GetGrain<ITestGrain>(Guid.NewGuid()).Do();
         }
-
-        var x = 5;
+        
         var grain = cluster.Client.GetGrain<IManagementGrain>(0);
         var hosts = await grain.GetHosts();
         var xx1 = await grain.GetSimpleGrainStatistics();

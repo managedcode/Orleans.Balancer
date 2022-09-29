@@ -101,7 +101,7 @@ public class BalancerStartupTask : IStartupTask
                 if (myPercentage > targetPercentage)
                 {
                     // by how much? are we over by more than the overage trigger?
-                   // if (overagePercent >= overagePercentTrigger)
+                    if (overagePercent >= overagePercentTrigger)
                     {
                         EmitReBalancingEvent(totalActivations,
                             myActivations,
@@ -112,7 +112,8 @@ public class BalancerStartupTask : IStartupTask
                             _localSiloDetails.SiloAddress,
                             StartEvent);
 
-                        Parallel.ForEach(_localGrainHolder.GrainsList, (item, state) =>
+
+                        foreach (var item in _localGrainHolder.GrainsList)
                         {
                             if (item.Value.TryGetTarget(out var grain))
                             {
@@ -123,9 +124,9 @@ public class BalancerStartupTask : IStartupTask
                             _localGrainHolder.GrainsList.TryRemove(item);
                             
                             if(surplusActivations <= 0)
-                                state.Stop();
-                        });
-
+                                break;
+                        }
+         
                         // only emit event if not already rebalancing
                         EmitReBalancingEvent(totalActivations,
                             myActivations,

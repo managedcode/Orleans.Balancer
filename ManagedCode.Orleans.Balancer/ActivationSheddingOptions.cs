@@ -34,5 +34,5 @@ public class ActivationSheddingOptions
     ///     <remarks>The default interval is 10 seconds.</remarks>
     /// </summary>
     [Range(5, int.MaxValue)]
-    public int TimerIntervalSeconds { get; set; } = 10;
+    public int TimerIntervalSeconds { get; set; } = 30;
 }

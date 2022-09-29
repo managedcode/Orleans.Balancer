@@ -161,40 +161,81 @@ public class SiloTests
         await SiloTest(itereations, true);
     }
 
-    [Fact]
-    public async Task SingleThread()
+    
+    [Theory]
+    [InlineData(250_000)]
+    [InlineData(500_000)]
+    public async Task ClearSiloSingleThreadTest(int itereations)
+    {
+        _errors = 0;
+        await SingleThread(itereations, false);
+    }
+
+    [Theory]
+    [InlineData(250_000)]
+    [InlineData(500_000)]
+    public async Task BalancerSiloSingleThreadTest(int itereations)
+    {
+        _errors = 0;
+        await SingleThread(itereations, true);
+    }
+
+    private async Task SingleThread(int iteration, bool enableBalance)
     {
         _errors = 0;
         var builder = new TestClusterBuilder();
-        builder.AddSiloBuilderConfigurator<TestSiloConfigurations>();
+        if (enableBalance)
+        {
+            builder.AddSiloBuilderConfigurator<TestSiloConfigurations>();
+        }
+        
         builder.Options.InitialSilosCount = 1;
 
         var cluster = builder.Build();
         await cluster.DeployAsync();
 
         var rnd = new Random();
-        for (var i = 0; i < 800_000; i++)
+        for (var i = 0; i < iteration; i++)
         {
             if (i % 100_000 == 0)
             {
                 await cluster.StartAdditionalSiloAsync();
-                await cluster.StartAdditionalSiloAsync();
                 _outputHelper.WriteLine("Cluster is added - " + i);
             }
 
-            var hello = cluster.Client.GetGrain<ITestGrainInt>(rnd.Next(0, 30_000));
-            try
+            if (rnd.Next(0, 1) == 0)
             {
-                var id = await hello.Do();
-            }
-            catch (Exception e)
-            {
-                Interlocked.Increment(ref _errors);
-                if (Debugger.IsAttached)
+                var hello = cluster.Client.GetGrain<ITestGrainInt>(rnd.Next(0, 30_000));
+                try
                 {
-                    _outputHelper.WriteLine($"!!!Error:{e.Message}");
+                    var id = await hello.Do();
+                }
+                catch (Exception e)
+                {
+                    Interlocked.Increment(ref _errors);
+                    if (Debugger.IsAttached)
+                    {
+                        _outputHelper.WriteLine($"!!!Error:{e.Message}");
+                    }
                 }
             }
+            else
+            {
+                var hello = cluster.Client.GetGrain<ITestGrain>(Guid.NewGuid());
+                try
+                {
+                    var id = await hello.Do();
+                }
+                catch (Exception e)
+                {
+                    Interlocked.Increment(ref _errors);
+                    if (Debugger.IsAttached)
+                    {
+                        _outputHelper.WriteLine($"!!!Error:{e.Message}");
+                    }
+                }
+            }
+            
         }
 
         var stat = await GetStatistics(cluster);

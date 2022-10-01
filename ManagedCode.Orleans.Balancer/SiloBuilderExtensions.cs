@@ -16,7 +16,7 @@ public static class SiloBuilderExtensions
         {
             // collection.AddSingleton<PlacementStrategy, MyPlacementStrategy>();
 
-            collection.AddSingleton<LocalGrainHolder>();
+            collection.AddSingleton<LocalBalancer>();
             collection.AddOptions<ActivationSheddingOptions>()
                 .Bind(context.Configuration.GetSection("ActivationShedding"))
                 // ReSharper disable once ConvertClosureToMethodGroup
@@ -24,7 +24,7 @@ public static class SiloBuilderExtensions
             // .ValidateDataAnnotations();
         });
 
-        siloBuilder.AddStartupTask<BalancerStartupTask>();
+        siloBuilder.AddStartupTask<GrainBalancer>();
         siloBuilder.AddIncomingGrainCallFilter<ActivationSheddingFilter>();
 
         return siloBuilder;

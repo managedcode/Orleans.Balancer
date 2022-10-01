@@ -5,30 +5,33 @@ using Orleans.Runtime;
 
 namespace ManagedCode.Orleans.Balancer;
 
-public class BalancerStartupTask : IStartupTask
+public class GrainBalancer : IStartupTask
 {
-    private HashSet<string> _grainTypes = new();
+    private static readonly EventId StartEvent = new(58001, "Starting");
+    private static readonly EventId SheddingEvent = new(58002, "Shedding");
+    private static readonly EventId StopEvent = new(58003, "Stopping");
     private readonly IGrainFactory _grainFactory;
-    private readonly LocalGrainHolder _localGrainHolder;
+    private readonly LocalBalancer _localBalancer;
     private readonly ILocalSiloDetails _localSiloDetails;
-    private readonly ILogger<BalancerStartupTask> _logger;
+    private readonly ILogger<GrainBalancer> _logger;
     private readonly ActivationSheddingOptions _options;
     private readonly IGrainRuntime _runtime;
+    private HashSet<string> _grainTypes = new();
     private string[] _grainTypesArray;
 
-    public BalancerStartupTask(ILogger<BalancerStartupTask> logger,
+    public GrainBalancer(ILogger<GrainBalancer> logger,
         IOptions<ActivationSheddingOptions> options,
         IGrainFactory grainFactory,
         IGrainRuntime runtime,
         ILocalSiloDetails localSiloDetails,
-        LocalGrainHolder localGrainHolder)
+        LocalBalancer localBalancer)
     {
         _logger = logger;
         _options = options.Value;
         _grainFactory = grainFactory;
         _runtime = runtime;
         _localSiloDetails = localSiloDetails;
-        _localGrainHolder = localGrainHolder;
+        _localBalancer= localBalancer;
     }
 
     public Task Execute(CancellationToken cancellationToken)
@@ -49,34 +52,32 @@ public class BalancerStartupTask : IStartupTask
         while (!token.IsCancellationRequested)
         {
             await Task.Delay(TimeSpan.FromSeconds(_options.TimerIntervalSeconds), token);
-            
+
             var managementGrain = _grainFactory.GetGrain<IManagementGrain>(0);
             var simpleGrainStatistics = await managementGrain.GetSimpleGrainStatistics();
 
             var silos = await managementGrain.GetHosts(true);
-            
-            var localStatistics = await managementGrain.GetRuntimeStatistics(new []{ _localSiloDetails.SiloAddress });
+
+            var localStatistics = await managementGrain.GetRuntimeStatistics(new[] { _localSiloDetails.SiloAddress });
             //var detailedGrainStatistics= await managementGrain.GetDetailedGrainStatistics(_grainTypesArray, new []{ _localSiloDetails.SiloAddress });
 
-            var localActivations = localStatistics.Sum(s=>s.ActivationCount);
+            var localActivations = localStatistics.Sum(s => s.ActivationCount);
             var totalActivations = await managementGrain.GetTotalActivationCount();
-            var myActivations = _localGrainHolder.GrainsList.Count;
-            
-            
+            var myActivations = _localBalancer.GrainsList.Count;
+
             double myPercentage;
             double targetPercentage;
             double overagePercentTrigger;
             double overagePercent;
-            
-            
+
             myPercentage = Math.Floor((double)localActivations / totalActivations * 100);
 
             // e.g. for three silos, 33% - the average each should aim to have
-            targetPercentage = Math.Floor(100d /simpleGrainStatistics.Length);
+            targetPercentage = Math.Floor(100d / simpleGrainStatistics.Length);
 
             // e.g. 20% overage = 33% (1/3) + 20% = 53% would be the trigger
             overagePercentTrigger = _options.BaselineTriggerPercentage;
-            
+
             if (simpleGrainStatistics.Length > 2)
             {
                 overagePercentTrigger = overagePercentTrigger * (1 + (2 - simpleGrainStatistics.Length) * 0.2);
@@ -87,13 +88,12 @@ public class BalancerStartupTask : IStartupTask
             }
 
             overagePercent = Math.Floor(myPercentage - targetPercentage);
-            
+
             var averageActivationsPerSilo = Math.Floor((double)totalActivations / simpleGrainStatistics.Length);
 
             // update counter (i.e. we set the "recovery" point at 95% of the overage activations beyond target)
             var surplusActivations = (int)Math.Floor((myActivations - averageActivationsPerSilo) * _options.LowerRecoveryThresholdFactor);
-            surplusActivations *= 2;
-            
+
             // validate against an absolute threshold for cluster-level activations
             if (totalActivations > _options.TotalGrainActivationsMinimumThreshold)
             {
@@ -112,8 +112,9 @@ public class BalancerStartupTask : IStartupTask
                             _localSiloDetails.SiloAddress,
                             StartEvent);
 
-
-                        foreach (var item in _localGrainHolder.GrainsList)
+                        _localBalancer.SetDeactivationNumber(surplusActivations);
+                        
+                        foreach (var item in _localBalancer.GrainsList)
                         {
                             if (item.Value.TryGetTarget(out var grain))
                             {
@@ -121,12 +122,14 @@ public class BalancerStartupTask : IStartupTask
                                 surplusActivations--;
                             }
 
-                            _localGrainHolder.GrainsList.TryRemove(item);
-                            
-                            if(surplusActivations <= 0)
+                            _localBalancer.GrainsList.TryRemove(item);
+
+                            if (surplusActivations <= 0)
+                            {
                                 break;
+                            }
                         }
-         
+
                         // only emit event if not already rebalancing
                         EmitReBalancingEvent(totalActivations,
                             myActivations,
@@ -136,22 +139,12 @@ public class BalancerStartupTask : IStartupTask
                             surplusActivations,
                             _localSiloDetails.SiloAddress,
                             StopEvent);
-
-                      
-                        
                     }
                 }
             }
-
-            
         }
     }
-    
-    
-    private static readonly EventId StartEvent = new(58001, "Starting");
-    private static readonly EventId SheddingEvent = new(58002, "Shedding");
-    private static readonly EventId StopEvent = new(58003, "Stopping");
-    
+
     private void EmitReBalancingEvent(int totalActivations,
         int myActivations,
         double overagePercent,
@@ -175,7 +168,7 @@ public class BalancerStartupTask : IStartupTask
 
         _logger.LogInformation(phase, $"Silo Activation Shedding {customDimensions}");
     }
-    
+
     private bool CanDeactivate(Type type)
     {
         return Attribute.GetCustomAttribute(type, typeof(CanDeactivateAttribute)) is not null;

@@ -161,7 +161,6 @@ public class SiloTests
         await SiloTest(itereations, true);
     }
 
-    
     [Theory]
     [InlineData(250_000)]
     [InlineData(500_000)]
@@ -188,7 +187,7 @@ public class SiloTests
         {
             builder.AddSiloBuilderConfigurator<TestSiloConfigurations>();
         }
-        
+
         builder.Options.InitialSilosCount = 1;
 
         var cluster = builder.Build();
@@ -235,7 +234,6 @@ public class SiloTests
                     }
                 }
             }
-            
         }
 
         var stat = await GetStatistics(cluster);
@@ -269,7 +267,7 @@ public class SiloTests
             var hello1 = await cluster.Client.GetGrain<ITestGrainInt>(i).Do();
             var hello2 = await cluster.Client.GetGrain<ITestGrain>(Guid.NewGuid()).Do();
         }
-        
+
         var grain = cluster.Client.GetGrain<IManagementGrain>(0);
         var hosts = await grain.GetHosts();
         var xx1 = await grain.GetSimpleGrainStatistics();

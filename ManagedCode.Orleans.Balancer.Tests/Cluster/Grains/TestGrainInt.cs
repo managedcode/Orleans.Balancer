@@ -3,14 +3,14 @@ using Orleans;
 namespace ManagedCode.Orleans.Balancer.Tests.Cluster.Grains;
 
 [CanDeactivate]
-public class TestGrain : Grain, ITestGrain
+public class TestGrainInt : Grain, ITestGrainInt
 {
     public static int ActivationCount;
     public static int DeactivationCount;
 
-    public Task<Guid> Do()
+    public Task<int> Do()
     {
-        return Task.FromResult(this.GetPrimaryKey());
+        return Task.FromResult((int)this.GetPrimaryKeyLong());
     }
 
     public override Task OnActivateAsync()

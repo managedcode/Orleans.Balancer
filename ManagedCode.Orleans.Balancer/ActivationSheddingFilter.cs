@@ -5,17 +5,18 @@ namespace ManagedCode.Orleans.Balancer;
 
 public sealed class ActivationSheddingFilter : IIncomingGrainCallFilter
 {
+    private readonly LocalBalancer _localBalancer;
     private readonly ILogger<ActivationSheddingFilter> _logger;
-    private readonly LocalGrainHolder _localGrainHolder;
-    public ActivationSheddingFilter(ILogger<ActivationSheddingFilter> logger, LocalGrainHolder localGrainHolder)
+
+    public ActivationSheddingFilter(ILogger<ActivationSheddingFilter> logger, LocalBalancer localBalancer)
     {
         _logger = logger;
-        _localGrainHolder = localGrainHolder;
+        _localBalancer = localBalancer;
     }
-    
+
     public async Task Invoke(IIncomingGrainCallContext context)
     {
         await context.Invoke();
-        _localGrainHolder.AddGrain(context.Grain);
+        _localBalancer.CheckDeactivation(context.Grain);
     }
 }

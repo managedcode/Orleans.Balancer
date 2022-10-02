@@ -114,6 +114,7 @@ public class GrainBalancer : IStartupTask
 
                         _localBalancer.SetDeactivationNumber(surplusActivations);
                         
+                        /*
                         foreach (var item in _localBalancer.GrainsList)
                         {
                             if (item.Value.TryGetTarget(out var grain))
@@ -128,7 +129,7 @@ public class GrainBalancer : IStartupTask
                             {
                                 break;
                             }
-                        }
+                        }*/
 
                         // only emit event if not already rebalancing
                         EmitReBalancingEvent(totalActivations,

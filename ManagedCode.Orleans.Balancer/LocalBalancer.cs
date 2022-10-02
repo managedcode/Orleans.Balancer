@@ -10,7 +10,7 @@ public sealed class LocalBalancer
     private readonly ILogger<LocalBalancer> _logger;
     private readonly IGrainRuntime _runtime;
     private volatile int _deactivationNumber;
-    public ConcurrentDictionary<string, WeakReference<Grain>> GrainsList { get; } = new();
+    public ConcurrentDictionary<string ,WeakReference<Grain>> GrainsList { get; } = new();
 
     public LocalBalancer(ILogger<LocalBalancer> logger, IGrainRuntime runtime)
     {
@@ -20,7 +20,7 @@ public sealed class LocalBalancer
 
     public void CheckDeactivation(IAddressable addressable)
     {
-        if (addressable is not SystemTarget && addressable is Grain grain)
+        if (addressable is not SystemTarget && addressable is Grain grain && CanDeactivate(grain.GetType()))
         {
             if (_deactivationNumber > 0)
             {
@@ -29,14 +29,19 @@ public sealed class LocalBalancer
             }
             else
             {
-                GrainsList[grain.IdentityString] = new WeakReference<Grain>(grain);
+                //var reference = new WeakReference<Grain>(grain);
+                //GrainsList[grain.IdentityString] = reference;
             }
-                
         }
     }
 
     public void SetDeactivationNumber(int number)
     {
         _deactivationNumber = number;
+    }
+    
+    private bool CanDeactivate(Type type)
+    {
+        return Attribute.GetCustomAttribute(type, typeof(CanDeactivateAttribute)) is not null;
     }
 }

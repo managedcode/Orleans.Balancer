@@ -2,7 +2,7 @@ using Orleans;
 
 namespace ManagedCode.Orleans.Balancer.Tests.Cluster.Grains;
 
-[CanDeactivate]
+[CanBeDeactivated]
 public class TestGrainInt : Grain, ITestGrainInt
 {
     public static int ActivationCount;

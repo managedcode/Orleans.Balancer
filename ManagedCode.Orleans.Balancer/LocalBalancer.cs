@@ -42,6 +42,6 @@ public sealed class LocalBalancer
     
     private bool CanDeactivate(Type type)
     {
-        return Attribute.GetCustomAttribute(type, typeof(CanDeactivateAttribute)) is not null;
+        return Attribute.GetCustomAttribute(type, typeof(CanBeDeactivatedAttribute)) is not null;
     }
 }

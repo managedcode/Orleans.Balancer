@@ -6,3 +6,7 @@
 [![Coverage Status](https://coveralls.io/repos/github/managedcode/Orleans.Balancer/badge.svg?branch=main)](https://coveralls.io/github/managedcode/Orleans.Balancer?branch=main)
 [![nuget](https://github.com/managedcode/Orleans.Balancer/actions/workflows/nuget.yml/badge.svg?branch=main)](https://github.com/managedcode/Orleans.Balancer/actions/workflows/nuget.yml)
 [![CodeQL](https://github.com/managedcode/Orleans.Balancer/actions/workflows/codeql-analysis.yml/badge.svg?branch=main)](https://github.com/managedcode/Orleans.Balancer/actions/workflows/codeql-analysis.yml)
+
+
+Base on
+https://github.com/oising/OrleansContrib.ActivationShedding

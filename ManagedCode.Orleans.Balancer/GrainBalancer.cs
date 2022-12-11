@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Orleans;
+using Orleans.Core.Internal;
 using Orleans.Runtime;
 
 namespace ManagedCode.Orleans.Balancer;
@@ -14,19 +15,25 @@ public class GrainBalancer : IStartupTask
     private readonly LocalBalancer _localBalancer;
     private readonly ILocalSiloDetails _localSiloDetails;
     private readonly ILogger<GrainBalancer> _logger;
+    private readonly IGrainContextAccessor _grainContextAccessor;
+    private readonly IGrainContextActivatorProvider _grainContextActivatorProvider;
     private readonly ActivationSheddingOptions _options;
     private readonly IGrainRuntime _runtime;
     private HashSet<string> _grainTypes = new();
     private string[] _grainTypesArray;
 
     public GrainBalancer(ILogger<GrainBalancer> logger,
+        IGrainContextAccessor grainContextAccessor,
         IOptions<ActivationSheddingOptions> options,
+        IGrainContextActivatorProvider grainContextActivatorProvider,
         IGrainFactory grainFactory,
         IGrainRuntime runtime,
         ILocalSiloDetails localSiloDetails,
         LocalBalancer localBalancer)
     {
         _logger = logger;
+        _grainContextAccessor = grainContextAccessor;
+        _grainContextActivatorProvider = grainContextActivatorProvider;
         _options = options.Value;
         _grainFactory = grainFactory;
         _runtime = runtime;
@@ -39,10 +46,11 @@ public class GrainBalancer : IStartupTask
         _grainTypes = AppDomain.CurrentDomain.GetAssemblies()
             .SelectMany(s => s.GetTypes())
             .Where(CanDeactivate)
-            .Select(s => s.FullName)
+            .Select(s => s.FullName+","+s.Assembly.GetName().Name)
             .ToHashSet();
         _grainTypesArray = _grainTypes.ToArray();
-
+        
+        //ManagedCode.Orleans.Balancer.Tests.Cluster.Grains.TestGrain,ManagedCode.Orleans.Balancer.Tests
         BackgroundWork(cancellationToken).Ignore();
         return Task.CompletedTask;
     }
@@ -53,14 +61,14 @@ public class GrainBalancer : IStartupTask
         {
             await Task.Delay(TimeSpan.FromSeconds(_options.TimerIntervalSeconds), token);
 
+            
             var managementGrain = _grainFactory.GetGrain<IManagementGrain>(0);
             var simpleGrainStatistics = await managementGrain.GetSimpleGrainStatistics();
 
             var silos = await managementGrain.GetHosts(true);
 
             var localStatistics = await managementGrain.GetRuntimeStatistics(new[] { _localSiloDetails.SiloAddress });
-            //var detailedGrainStatistics= await managementGrain.GetDetailedGrainStatistics(_grainTypesArray, new []{ _localSiloDetails.SiloAddress });
-
+            
             var localActivations = localStatistics.Sum(s => s.ActivationCount);
             var totalActivations = await managementGrain.GetTotalActivationCount();
             var myActivations = _localBalancer.GrainsList.Count;
@@ -85,6 +93,24 @@ public class GrainBalancer : IStartupTask
                 {
                     overagePercentTrigger = 2;
                 }
+            }
+   
+
+            var detailedGrainStatistics12341231232= await managementGrain.GetDetailedGrainStatistics();
+            var detailedGrainStatistics1234= await managementGrain.GetDetailedGrainStatistics(_grainTypesArray);
+
+            managementGrain.ForceActivationCollection(new[] { _localSiloDetails.SiloAddress }, TimeSpan.FromMinutes(1));
+ 
+            var detailedGrainStatistics1= await managementGrain.GetDetailedGrainStatistics(_grainTypesArray, new []{ _localSiloDetails.SiloAddress });
+
+            foreach (var grainInfo in detailedGrainStatistics1)
+            {
+                var addressable = _runtime.GrainFactory.GetGrain(grainInfo.GrainId);
+                if (addressable is not null)
+                {
+                    await addressable.Cast<IGrainManagementExtension>().DeactivateOnIdle();
+                }
+
             }
 
             overagePercent = Math.Floor(myPercentage - targetPercentage);
@@ -112,7 +138,35 @@ public class GrainBalancer : IStartupTask
                             _localSiloDetails.SiloAddress,
                             StartEvent);
 
-                        _localBalancer.SetDeactivationNumber(surplusActivations);
+                        
+                        // var detailedGrainStatistics= await managementGrain.GetDetailedGrainStatistics(_grainTypesArray, new []{ _localSiloDetails.SiloAddress });
+                        //
+                        // foreach (var grainInfo in detailedGrainStatistics)
+                        // {
+                        //     surplusActivations--;
+                        //
+                        //     var addressable = _runtime.GrainFactory.GetGrain(grainInfo.GrainId);
+                        //     _grainContextActivatorProvider.TryGet(GrainType.Create(grainInfo.GrainType), out var cc);
+                        //     cc.CreateContext(new GrainAddress()
+                        //     {
+                        //         GrainId = grainInfo.GrainId;
+                        //     });
+                        //     
+                        //     if (addressable is not null)
+                        //     {
+                        //         var grain = addressable.AsReference(Type.GetType(grainInfo.GrainType));
+                        //         var gg = grain as Grain;
+                        //         _runtime.DeactivateOnIdle(grain as IGrainContext);
+                        //         if(surplusActivations == 0)
+                        //             break;
+                        //     }
+                        //
+                        // }
+                        
+                        
+                        
+                        
+                        //_localBalancer.SetDeactivationNumber(surplusActivations);
                         
                         /*
                         foreach (var item in _localBalancer.GrainsList)
@@ -158,7 +212,7 @@ public class GrainBalancer : IStartupTask
         var customDimensions = new Dictionary<string, string>
         {
             { "orleans.silo.rebalancingPhase", phase.Name }, // started -> shedding -> stopped
-            { "orleans.silo", $"{localSilo.ToLongString()}" },
+            { "orleans.silo", $"{localSilo.ToParsableString()}" },
             { "orleans.cluster.siloCount", activeSilosCount.ToString() },
             { "orleans.cluster.totalActivations", totalActivations.ToString() },
             { "orleans.silo.activations", myActivations.ToString() },

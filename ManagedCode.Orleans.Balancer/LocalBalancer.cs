@@ -18,14 +18,14 @@ public sealed class LocalBalancer
         _runtime = runtime;
     }
 
-    public void CheckDeactivation(IAddressable addressable)
+    public void CheckDeactivation(IGrainContext addressable)
     {
         if (addressable is not SystemTarget && addressable is Grain grain && CanDeactivate(grain.GetType()))
         {
             if (_deactivationNumber > 0)
             {
                 Interlocked.Decrement(ref _deactivationNumber);
-                _runtime.DeactivateOnIdle(grain);
+                _runtime.DeactivateOnIdle(addressable);
             }
             else
             {

@@ -13,15 +13,15 @@ public class TestGrainInt : Grain, ITestGrainInt
         return Task.FromResult((int)this.GetPrimaryKeyLong());
     }
 
-    public override Task OnActivateAsync()
+    public override Task OnActivateAsync(CancellationToken cancellationToken)
     {
         Interlocked.Increment(ref ActivationCount);
-        return base.OnActivateAsync();
+        return base.OnActivateAsync(cancellationToken);
     }
 
-    public override Task OnDeactivateAsync()
+    public override Task OnDeactivateAsync(DeactivationReason reason, CancellationToken cancellationToken)
     {
         Interlocked.Increment(ref DeactivationCount);
-        return base.OnDeactivateAsync();
+        return base.OnDeactivateAsync(reason, cancellationToken);
     }
 }

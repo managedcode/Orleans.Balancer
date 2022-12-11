@@ -12,7 +12,6 @@ public class TestSiloConfigurations : ISiloConfigurator
         {
             // services.AddSingleton<T, Impl>(...);
         });
-        siloBuilder.ConfigureApplicationParts(parts => parts.AddFromAppDomain());
         siloBuilder.UseActivationShedding(o => { });
     }
 }

@@ -17,6 +17,6 @@ public sealed class ActivationSheddingFilter : IIncomingGrainCallFilter
     public async Task Invoke(IIncomingGrainCallContext context)
     {
         await context.Invoke();
-        _localBalancer.CheckDeactivation(context.Grain);
+        _localBalancer.CheckDeactivation(context.TargetContext);
     }
 }

@@ -12,13 +12,13 @@ public static class SiloBuilderExtensions
 
     public static ISiloBuilder UseActivationShedding(this ISiloBuilder siloBuilder, Action<ActivationSheddingOptions> options)
     {
-        siloBuilder.ConfigureServices((context, collection) =>
+        siloBuilder.ConfigureServices(serviceCollection => 
         {
             // collection.AddSingleton<PlacementStrategy, MyPlacementStrategy>();
 
-            collection.AddSingleton<LocalBalancer>();
-            collection.AddOptions<ActivationSheddingOptions>()
-                .Bind(context.Configuration.GetSection("ActivationShedding"))
+            serviceCollection.AddSingleton<LocalBalancer>();
+            serviceCollection.AddOptions<ActivationSheddingOptions>()
+                //.Bind(context.Configuration.GetSection("ActivationShedding"))
                 // ReSharper disable once ConvertClosureToMethodGroup
                 .PostConfigure(sheddingOptions => options(sheddingOptions));
             // .ValidateDataAnnotations();

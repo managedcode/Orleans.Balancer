@@ -99,19 +99,22 @@ public class GrainBalancer : IStartupTask
             var detailedGrainStatistics12341231232= await managementGrain.GetDetailedGrainStatistics();
             var detailedGrainStatistics1234= await managementGrain.GetDetailedGrainStatistics(_grainTypesArray);
 
-            managementGrain.ForceActivationCollection(new[] { _localSiloDetails.SiloAddress }, TimeSpan.FromMinutes(1));
- 
+            
+            
+            
+            
+            await managementGrain.ForceActivationCollection(new[] { _localSiloDetails.SiloAddress }, TimeSpan.FromMinutes(1));
             var detailedGrainStatistics1= await managementGrain.GetDetailedGrainStatistics(_grainTypesArray, new []{ _localSiloDetails.SiloAddress });
-
             foreach (var grainInfo in detailedGrainStatistics1)
             {
                 var addressable = _runtime.GrainFactory.GetGrain(grainInfo.GrainId);
-                if (addressable is not null)
-                {
-                    await addressable.Cast<IGrainManagementExtension>().DeactivateOnIdle();
-                }
-
+                await addressable.Cast<IGrainManagementExtension>().DeactivateOnIdle();
             }
+            
+            
+            
+            
+            
 
             overagePercent = Math.Floor(myPercentage - targetPercentage);
 

@@ -12,6 +12,6 @@ public class TestSiloConfigurations : ISiloConfigurator
         {
             // services.AddSingleton<T, Impl>(...);
         });
-        siloBuilder.UseActivationShedding(o => { });
+        siloBuilder.UseOrleansBalancer(o => { });
     }
 }

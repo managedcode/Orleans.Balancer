@@ -17,14 +17,14 @@ public class GrainBalancer : IStartupTask
     private readonly ILogger<GrainBalancer> _logger;
     private readonly IGrainContextAccessor _grainContextAccessor;
     private readonly IGrainContextActivatorProvider _grainContextActivatorProvider;
-    private readonly ActivationSheddingOptions _options;
+    private readonly OrleansBalancerOptions _options;
     private readonly IGrainRuntime _runtime;
     private HashSet<string> _grainTypes = new();
     private string[] _grainTypesArray;
 
     public GrainBalancer(ILogger<GrainBalancer> logger,
         IGrainContextAccessor grainContextAccessor,
-        IOptions<ActivationSheddingOptions> options,
+        IOptions<OrleansBalancerOptions> options,
         IGrainContextActivatorProvider grainContextActivatorProvider,
         IGrainFactory grainFactory,
         IGrainRuntime runtime,

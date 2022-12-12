@@ -5,7 +5,7 @@ namespace ManagedCode.Orleans.Balancer;
 /// <summary>
 ///     Options to configure the grain activation shedding feature.
 /// </summary>
-public class ActivationSheddingOptions
+public class OrleansBalancerOptions
 {
     /// <summary>
     ///     Minimum number of active grains in the cluster (global) before we should consider rebalancing.

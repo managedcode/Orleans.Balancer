@@ -5,19 +5,19 @@ namespace ManagedCode.Orleans.Balancer;
 
 public static class SiloBuilderExtensions
 {
-    public static ISiloBuilder UseActivationShedding(this ISiloBuilder siloBuilder)
+    public static ISiloBuilder UseOrleansBalancer(this ISiloBuilder siloBuilder)
     {
-        return UseActivationShedding(siloBuilder, _ => { });
+        return UseOrleansBalancer(siloBuilder, _ => { });
     }
 
-    public static ISiloBuilder UseActivationShedding(this ISiloBuilder siloBuilder, Action<ActivationSheddingOptions> options)
+    public static ISiloBuilder UseOrleansBalancer(this ISiloBuilder siloBuilder, Action<OrleansBalancerOptions> options)
     {
         siloBuilder.ConfigureServices(serviceCollection => 
         {
             // collection.AddSingleton<PlacementStrategy, MyPlacementStrategy>();
 
             serviceCollection.AddSingleton<LocalBalancer>();
-            serviceCollection.AddOptions<ActivationSheddingOptions>()
+            serviceCollection.AddOptions<OrleansBalancerOptions>()
                 //.Bind(context.Configuration.GetSection("ActivationShedding"))
                 // ReSharper disable once ConvertClosureToMethodGroup
                 .PostConfigure(sheddingOptions => options(sheddingOptions));

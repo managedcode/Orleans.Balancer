@@ -45,22 +45,34 @@ public class LocalDeactivatorGrain : Grain, ILocalDeactivatorGrain
         return Task.CompletedTask;
     }
 
+    public async Task DeactivateGrainsAsync(float percentage)
+    {
+        if (percentage is <= 0 or > 1)
+        {
+            throw new ArgumentOutOfRangeException(nameof(percentage));
+        }
+
+        var localActivations = await GetLocalActivationCount();
+        var countToDeactivate = (int) Math.Ceiling(localActivations * percentage);
+
+        await DeactivateGrainsAsync(countToDeactivate);
+    }
+
     private async Task CheckAsync(object obj)
     {
-        var managementGrain = GrainFactory.GetGrain<IManagementGrain>(0);
-
-        var localStatistics = await managementGrain.GetRuntimeStatistics(_localSiloAddresses);
-        var localActivations = localStatistics.Sum(s => s.ActivationCount);
+        var localActivations = await GetLocalActivationCount();
 
         if (localActivations >= _options.TotalGrainActivationsMinimumThreshold)
         {
             var countToDeactivate = localActivations - _options.TotalGrainActivationsMinimumThreshold;
-            await DeactivateGrainsAsync(managementGrain, countToDeactivate);
+            await DeactivateGrainsAsync(countToDeactivate);
         }
     }
 
-    private async Task DeactivateGrainsAsync(IManagementGrain managementGrain, int countToDeactivate)
+    private async Task DeactivateGrainsAsync(int countToDeactivate)
     {
+        var managementGrain = GrainFactory.GetGrain<IManagementGrain>(0);
+
         var grainStatistics =
             await managementGrain.GetDetailedGrainStatistics(_grainTypes.Select(s => s.Key).ToArray(), _localSiloAddresses);
 
@@ -77,6 +89,14 @@ public class LocalDeactivatorGrain : Grain, ILocalDeactivatorGrain
 
             countToDeactivate--;
         }
+    }
+
+    private async Task<int> GetLocalActivationCount()
+    {
+        var managementGrain = GrainFactory.GetGrain<IManagementGrain>(0);
+
+        var localStatistics = await managementGrain.GetRuntimeStatistics(_localSiloAddresses);
+        return localStatistics.Sum(s => s.ActivationCount);
     }
 
     private static bool CanDeactivate(Type type)

@@ -1,3 +1,4 @@
+using ManagedCode.Orleans.Balancer.Attributes;
 using Orleans;
 
 namespace ManagedCode.Orleans.Balancer.Tests.Cluster.Grains;

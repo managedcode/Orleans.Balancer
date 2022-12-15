@@ -1,5 +1,4 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
-using Orleans.Hosting;
 
 namespace ManagedCode.Orleans.Balancer;
 
@@ -7,16 +6,16 @@ public static class SiloBuilderExtensions
 {
     public static ISiloBuilder UseOrleansBalancer(this ISiloBuilder siloBuilder)
     {
+        siloBuilder.AddPlacementDirector<LocalPlacementStrategy, LocalPlacementDirector>();
         return UseOrleansBalancer(siloBuilder, _ => { });
     }
 
     public static ISiloBuilder UseOrleansBalancer(this ISiloBuilder siloBuilder, Action<OrleansBalancerOptions> options)
     {
-        siloBuilder.ConfigureServices(serviceCollection => 
+        siloBuilder.ConfigureServices(serviceCollection =>
         {
             // collection.AddSingleton<PlacementStrategy, MyPlacementStrategy>();
 
-            serviceCollection.AddSingleton<LocalBalancer>();
             serviceCollection.AddOptions<OrleansBalancerOptions>()
                 //.Bind(context.Configuration.GetSection("ActivationShedding"))
                 // ReSharper disable once ConvertClosureToMethodGroup
@@ -24,8 +23,7 @@ public static class SiloBuilderExtensions
             // .ValidateDataAnnotations();
         });
 
-        siloBuilder.AddStartupTask<GrainBalancer>();
-        siloBuilder.AddIncomingGrainCallFilter<ActivationSheddingFilter>();
+        // siloBuilder.AddStartupTask<GrainBalancer>();
 
         return siloBuilder;
     }

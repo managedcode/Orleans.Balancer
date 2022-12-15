@@ -35,4 +35,7 @@ public class OrleansBalancerOptions
     /// </summary>
     [Range(5, int.MaxValue)]
     public int TimerIntervalSeconds { get; set; } = 30;
+
+
+    public TimeSpan TimerInterval { get; set; } = TimeSpan.FromSeconds(10);
 }

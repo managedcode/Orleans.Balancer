@@ -23,7 +23,7 @@ public class BalancerGrain : Grain, IBalancerGrain
         var hosts = await managementGrain.GetHosts(true);
         _silos = hosts.Select(s => s.Key).ToArray();
 
-        RegisterTimer(CheckAsync, null, _options.TimerInterval, _options.TimerInterval);
+        RegisterTimer(CheckAsync, null, _options.TimerIntervalRebalancing, _options.TimerIntervalRebalancing);
     }
 
     private async Task CheckAsync(object obj)
@@ -43,7 +43,7 @@ public class BalancerGrain : Grain, IBalancerGrain
     {
         var tasks = silos
             .Select(address => GrainFactory.GetGrain<ILocalDeactivatorGrain>(address.ToParsableString()))
-            .Select(grain => grain.DeactivateGrainsAsync(0.33f))
+            .Select(grain => grain.DeactivateGrainsAsync(_options.RebalancingPercentage))
             .ToList();
 
         await Task.WhenAll(tasks);

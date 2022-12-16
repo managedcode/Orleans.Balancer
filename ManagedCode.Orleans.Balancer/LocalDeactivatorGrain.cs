@@ -20,21 +20,25 @@ public class LocalDeactivatorGrain : Grain, ILocalDeactivatorGrain
         ILocalSiloDetails siloDetails,
         IOptions<OrleansBalancerOptions> options)
     {
-        _localSiloAddresses = new[] {siloDetails.SiloAddress,};
         _options = options.Value;
+        _localSiloAddresses = new[] {siloDetails.SiloAddress};
 
-        // TODO: also get grain types from options
         _grainTypes = AppDomain.CurrentDomain.GetAssemblies()
             .SelectMany(s => s.GetTypes())
             .Where(CanDeactivate)
             .Select(s => (s.FullName + "," + s.Assembly.GetName().Name, GetPriority(s)))
             .Distinct()
             .ToDictionary(s => s.Item1, s => s.Item2);
+
+        foreach (var (key, value) in _options.GrainsForDeactivation)
+        {
+            _grainTypes.TryAdd(key, value);
+        }
     }
 
     public override Task OnActivateAsync(CancellationToken cancellationToken)
     {
-        RegisterTimer(CheckAsync, null, _options.TimerInterval, _options.TimerInterval);
+        RegisterTimer(CheckAsync, null, _options.TimerIntervalDeactivation, _options.TimerIntervalDeactivation);
 
         return base.OnActivateAsync(cancellationToken);
     }
@@ -92,14 +96,14 @@ public class LocalDeactivatorGrain : Grain, ILocalDeactivatorGrain
         }
 
         var chunks = deactivationTasks
-            .Chunk(100)
+            .Chunk(_options.DeactivateGrainsAtTheSameTime)
             .Select(Task.WhenAll)
             .ToArray();
 
         foreach (var chunk in chunks)
         {
             await chunk;
-            await Task.Delay(1000);
+            await Task.Delay(_options.DelayBetweenDeactivations);
         }
     }
 

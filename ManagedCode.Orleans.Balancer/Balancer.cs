@@ -4,7 +4,7 @@ using Orleans.Runtime;
 
 namespace ManagedCode.Orleans.Balancer;
 
-public class Balancer : IStartupTask, IDisposable
+public class Balancer : IStartupTask
 {
     private readonly ILogger<Balancer> _logger;
     private readonly IGrainFactory _grainFactory;
@@ -26,7 +26,7 @@ public class Balancer : IStartupTask, IDisposable
 
     private async Task ActivateLocalDeactivatorGrainAsync()
     {
-        var siloGrain = _grainFactory.GetGrain<LocalDeactivatorGrain>(_localSiloDetails.SiloAddress.ToParsableString());
+        var siloGrain = _grainFactory.GetGrain<ILocalDeactivatorGrain>(_localSiloDetails.SiloAddress.ToParsableString());
         await siloGrain.InitializeAsync();
     }
 
@@ -34,11 +34,5 @@ public class Balancer : IStartupTask, IDisposable
     {
         var dashboardGrain = _grainFactory.GetGrain<IBalancerGrain>(0);
         await dashboardGrain.InitializeAsync();
-    }
-
-
-    public void Dispose()
-    {
-        throw new NotImplementedException();
     }
 }

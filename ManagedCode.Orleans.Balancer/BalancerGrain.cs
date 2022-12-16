@@ -42,7 +42,7 @@ public class BalancerGrain : Grain, IBalancerGrain
     public async Task RebalanceAsync(IEnumerable<SiloAddress> silos)
     {
         var tasks = silos
-            .Select(address => GrainFactory.GetGrain<LocalDeactivatorGrain>(address.ToParsableString()))
+            .Select(address => GrainFactory.GetGrain<ILocalDeactivatorGrain>(address.ToParsableString()))
             .Select(grain => grain.DeactivateGrainsAsync(0.33f))
             .ToList();
 

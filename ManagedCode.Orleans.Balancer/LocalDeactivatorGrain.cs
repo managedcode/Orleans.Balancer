@@ -77,7 +77,7 @@ public class LocalDeactivatorGrain : Grain, ILocalDeactivatorGrain
             await managementGrain.GetDetailedGrainStatistics(_grainTypes.Select(s => s.Key).ToArray(), _localSiloAddresses);
 
         List<Task> deactivationTasks = new();
-        
+
         foreach (var grainStatistic in grainStatistics.OrderBy(s => _grainTypes[s.GrainType]))
         {
             if (countToDeactivate == 0)
@@ -96,9 +96,9 @@ public class LocalDeactivatorGrain : Grain, ILocalDeactivatorGrain
             .Select(Task.WhenAll)
             .ToArray();
 
-        foreach (var task in chunks)
+        foreach (var chunk in chunks)
         {
-            await task;
+            await chunk;
             await Task.Delay(1000);
         }
     }

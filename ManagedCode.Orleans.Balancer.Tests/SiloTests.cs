@@ -150,7 +150,7 @@ public class SiloTests
         await SiloTest(itereations, false);
     }
 
-    
+
     [Theory]
     [InlineData(10)]
     [InlineData(25)]
@@ -272,8 +272,8 @@ public class SiloTests
         var grain = cluster.Client.GetGrain<IManagementGrain>(0);
         var hosts = await grain.GetHosts();
         var xx1 = await grain.GetSimpleGrainStatistics();
-        var xx2 = await grain.GetRuntimeStatistics(new[] { hosts.First().Key });
-        var xx3 = await grain.GetDetailedGrainStatistics(hostsIds: new[] { hosts.First().Key });
+        var xx2 = await grain.GetRuntimeStatistics(new[] {hosts.First().Key});
+        var xx3 = await grain.GetDetailedGrainStatistics(hostsIds: new[] {hosts.First().Key});
 
         await Task.Delay(TimeSpan.FromSeconds(10));
 
@@ -294,8 +294,8 @@ public class SiloTests
         await Task.Delay(TimeSpan.FromSeconds(30));
 
         xx1 = await grain.GetSimpleGrainStatistics();
-        xx2 = await grain.GetRuntimeStatistics(new[] { hosts.First().Key });
-        xx3 = await grain.GetDetailedGrainStatistics(hostsIds: new[] { hosts.First().Key });
+        xx2 = await grain.GetRuntimeStatistics(new[] {hosts.First().Key});
+        xx3 = await grain.GetDetailedGrainStatistics(hostsIds: new[] {hosts.First().Key});
 
         if (Debugger.IsAttached)
         {

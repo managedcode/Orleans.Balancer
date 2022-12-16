@@ -6,7 +6,7 @@ using Xunit;
 
 namespace ManagedCode.Orleans.Balancer.Tests;
 
-public class LocalDeactivatorTests
+public class LocalDeactivatorTests : BaseTests
 {
     [Fact]
     public async Task ActivateSomeSilo_ShouldBeSameCountLocalDeactivators()
@@ -16,7 +16,7 @@ public class LocalDeactivatorTests
 
         // Act
         var cluster = await DeployTestCluster(siloCount);
-        await Task.Delay(2000);
+        await Task.Delay(1000);
         var managementGrain = cluster.GrainFactory.GetGrain<IManagementGrain>(0);
         var detailedGrainStatistics = await managementGrain.GetDetailedGrainStatistics();
 
@@ -45,10 +45,9 @@ public class LocalDeactivatorTests
 
         // Act
         var cluster = await DeployTestCluster(siloCount);
-        await Task.Delay(2000);
+        await Task.Delay(1000);
         var managementGrain = cluster.GrainFactory.GetGrain<IManagementGrain>(0);
         await managementGrain.ForceActivationCollection(TimeSpan.FromMilliseconds(1));
-        await Task.Delay(2000);
 
         var detailedGrainStatistics = await managementGrain.GetDetailedGrainStatistics();
 
@@ -58,16 +57,5 @@ public class LocalDeactivatorTests
             .ToList();
 
         localDeactivatorGrains.Count.Should().Be(siloCount);
-    }
-
-    private static async Task<TestCluster> DeployTestCluster(short initialSilosCount)
-    {
-        var builder = new TestClusterBuilder();
-        builder.AddSiloBuilderConfigurator<TestSiloConfigurations>();
-        builder.Options.InitialSilosCount = initialSilosCount;
-        var cluster = builder.Build();
-        await cluster.DeployAsync();
-
-        return cluster;
     }
 }

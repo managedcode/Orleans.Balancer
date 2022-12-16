@@ -32,6 +32,8 @@ public class Balancer : IStartupTask
 
     private async Task ActivateBalancerGrainAsync()
     {
+        // TODO: Reactivate if grain deactivated
+
         var dashboardGrain = _grainFactory.GetGrain<IBalancerGrain>(0);
         await dashboardGrain.InitializeAsync();
     }

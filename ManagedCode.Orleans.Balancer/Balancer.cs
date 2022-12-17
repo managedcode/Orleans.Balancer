@@ -6,9 +6,9 @@ namespace ManagedCode.Orleans.Balancer;
 
 public class Balancer : IStartupTask
 {
-    private readonly ILogger<Balancer> _logger;
     private readonly IGrainFactory _grainFactory;
     private readonly ILocalSiloDetails _localSiloDetails;
+    private readonly ILogger<Balancer> _logger;
 
     public Balancer(ILogger<Balancer> logger, IGrainFactory grainFactory, ILocalSiloDetails localSiloDetails)
     {

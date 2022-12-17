@@ -37,7 +37,6 @@ public class BalancerGrainTests : BaseTests
         balancerGrains.Count.Should().Be(1);
     }
 
-
     [Fact]
     public async Task RestartSiloWithBalancerGrains_BalancerGrainsShouldBeActive()
     {
@@ -52,7 +51,6 @@ public class BalancerGrainTests : BaseTests
 
         await cluster.RestartSiloAsync(cluster.GetSiloForAddress(balancerGrain.SiloAddress));
         await Task.Delay(5000);
-
 
         // Assert
         var balancerGrains = await GetBalancerGrainStatistics(managementGrain);

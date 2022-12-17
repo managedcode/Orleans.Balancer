@@ -1,17 +1,16 @@
-using ManagedCode.Orleans.Balancer.Attributes;
-using Orleans;
+using Orleans.Runtime;
 
 namespace ManagedCode.Orleans.Balancer.Tests.Cluster.Grains;
 
-[CanBeDeactivated]
+//[CanBeDeactivated] from config, priory High
 public class TestGrainInt : Grain, ITestGrainInt
 {
     public static int ActivationCount;
     public static int DeactivationCount;
 
-    public Task<int> Do()
+    public Task<GrainId> Do()
     {
-        return Task.FromResult((int)this.GetPrimaryKeyLong());
+        return Task.FromResult(this.GetGrainId());
     }
 
     public override Task OnActivateAsync(CancellationToken cancellationToken)

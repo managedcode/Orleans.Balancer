@@ -10,9 +10,3 @@ internal sealed class LocalPlacementDirector : IPlacementDirector
         return Task.FromResult(context.LocalSilo);
     }
 }
-
-[Serializable]
-[GenerateSerializer]
-internal class LocalPlacementStrategy : PlacementStrategy
-{
-}

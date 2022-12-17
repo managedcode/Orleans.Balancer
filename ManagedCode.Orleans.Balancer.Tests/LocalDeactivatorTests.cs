@@ -1,7 +1,5 @@
 using FluentAssertions;
-using ManagedCode.Orleans.Balancer.Tests.Cluster;
 using Orleans.Runtime;
-using Orleans.TestingHost;
 using Xunit;
 
 namespace ManagedCode.Orleans.Balancer.Tests;
@@ -19,7 +17,6 @@ public class LocalDeactivatorTests : BaseTests
         await Task.Delay(1000);
         var managementGrain = cluster.GrainFactory.GetGrain<IManagementGrain>(0);
         var detailedGrainStatistics = await managementGrain.GetDetailedGrainStatistics();
-
 
         // Assert
         var localDeactivatorGrains = detailedGrainStatistics

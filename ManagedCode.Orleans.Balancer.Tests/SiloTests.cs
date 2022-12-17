@@ -25,53 +25,15 @@ public class SiloTests
         return statistics;
     }
 
-    private async IAsyncEnumerable<Guid> ActivateGrains(TestCluster cluster, int number)
+    private async Task RunTestGrain(TestCluster cluster, int iterations)
     {
-        for (var i = 0; i < number; i++)
+        for (var i = 0; i < iterations; i++)
         {
-            var hello = cluster.Client.GetGrain<ITestGrain>(Guid.NewGuid());
-            var id = await hello.Do();
-            yield return id;
-        }
-    }
+            var testGrain = cluster.Client.GetGrain<ITestGrain>(Guid.NewGuid());
+            var testGrainInt = cluster.Client.GetGrain<ITestGrainInt>(i);
+            var testGrainString = cluster.Client.GetGrain<ITestGrainString>(i.ToString());
 
-    private async Task ReactivateGrains(TestCluster cluster, Guid[] guids)
-    {
-        var count = 0;
-        if (Debugger.IsAttached)
-        {
-            _outputHelper.WriteLine($"ReactivateGrains for: {guids.Length} grains.");
-        }
-
-        var sw = Stopwatch.StartNew();
-        foreach (var item in guids)
-        {
-            do
-            {
-                try
-                {
-                    var hello = cluster.Client.GetGrain<ITestGrain>(item);
-                    var id = await hello.Do();
-                    break;
-                }
-                catch (Exception e)
-                {
-                    Interlocked.Increment(ref _errors);
-                    if (Debugger.IsAttached)
-                    {
-                        _outputHelper.WriteLine("-------!!!!!!!!!!Exception");
-                    }
-                }
-            } while (true);
-
-            count++;
-        }
-
-        sw.Stop();
-
-        if (Debugger.IsAttached)
-        {
-            _outputHelper.WriteLine($"ReactivateGrains for: {guids.Length}; count:{count}; time:{sw.Elapsed}");
+            await Task.WhenAll(testGrain.Do(), testGrainInt.Do(), testGrainString.Do());
         }
     }
 
@@ -88,40 +50,24 @@ public class SiloTests
         var cluster = builder.Build();
         await cluster.DeployAsync();
 
-        var grains = new List<Guid>(iteration * 1000);
-        var allTaks = new List<Task>(iteration);
-
-        for (var i = 0; i < iteration; i++)
+        var total = iteration / 10;
+        for (var loop = 0; loop < total; loop++)
         {
-            if (i % 20 == 0)
-            {
-                await cluster.StartAdditionalSiloAsync();
-                _outputHelper.WriteLine("Cluster is added - " + i);
-            }
-
             var sw = Stopwatch.StartNew();
-
-            await foreach (var item in ActivateGrains(cluster, 1000))
-            {
-                grains.Add(item);
-            }
-
+            Parallel.For(1, iteration * 10, i => { Task.WaitAll(RunTestGrain(cluster, iteration)); });
             sw.Stop();
 
-            allTaks.Add(Task.Run(() => ReactivateGrains(cluster, grains.ToArray())));
-
-            _outputHelper.WriteLine($"Interation:{i} - {sw.Elapsed}");
+            _outputHelper.WriteLine($"Interation:{loop}/{total} - {sw.Elapsed}");
+            await cluster.StartAdditionalSiloAsync();
         }
 
-        for (var i = 0; i < 5; i++)
-        {
-            var rsw = Stopwatch.StartNew();
-            await ReactivateGrains(cluster, grains.ToArray());
-            rsw.Stop();
-            _outputHelper.WriteLine($"Reactivate - {i}");
-        }
+        await Task.Delay(TimeSpan.FromSeconds(30));
 
-        await Task.WhenAll(allTaks);
+        var final = Stopwatch.StartNew();
+        Parallel.For(1, iteration * 10, i => { Task.WaitAll(RunTestGrain(cluster, iteration)); });
+        final.Stop();
+
+        _outputHelper.WriteLine($"Interation:Final - {final.Elapsed}");
 
         var stat = await GetStatistics(cluster);
         var count = 0;
@@ -142,7 +88,7 @@ public class SiloTests
     [Theory]
     [InlineData(10)]
     [InlineData(25)]
-    [InlineData(80)]
+    [InlineData(50)]
     [InlineData(100)]
     public async Task ClearSiloTest(int itereations)
     {
@@ -150,11 +96,10 @@ public class SiloTests
         await SiloTest(itereations, false);
     }
 
-
     [Theory]
     [InlineData(10)]
     [InlineData(25)]
-    [InlineData(80)]
+    [InlineData(50)]
     [InlineData(100)]
     public async Task BalancerSiloTest(int itereations)
     {
@@ -203,7 +148,8 @@ public class SiloTests
                 _outputHelper.WriteLine("Cluster is added - " + i);
             }
 
-            if (rnd.Next(0, 1) == 0)
+            var newRnd = rnd.Next(0, 2);
+            if (newRnd == 0)
             {
                 var hello = cluster.Client.GetGrain<ITestGrainInt>(rnd.Next(0, 30_000));
                 try
@@ -219,9 +165,25 @@ public class SiloTests
                     }
                 }
             }
-            else
+            else if (newRnd == 1)
             {
                 var hello = cluster.Client.GetGrain<ITestGrain>(Guid.NewGuid());
+                try
+                {
+                    var id = await hello.Do();
+                }
+                catch (Exception e)
+                {
+                    Interlocked.Increment(ref _errors);
+                    if (Debugger.IsAttached)
+                    {
+                        _outputHelper.WriteLine($"!!!Error:{e.Message}");
+                    }
+                }
+            }
+            else
+            {
+                var hello = cluster.Client.GetGrain<ITestGrainString>(rnd.Next(0, 30_000).ToString());
                 try
                 {
                     var id = await hello.Do();
@@ -272,8 +234,8 @@ public class SiloTests
         var grain = cluster.Client.GetGrain<IManagementGrain>(0);
         var hosts = await grain.GetHosts();
         var xx1 = await grain.GetSimpleGrainStatistics();
-        var xx2 = await grain.GetRuntimeStatistics(new[] {hosts.First().Key});
-        var xx3 = await grain.GetDetailedGrainStatistics(hostsIds: new[] {hosts.First().Key});
+        var xx2 = await grain.GetRuntimeStatistics(new[] { hosts.First().Key });
+        var xx3 = await grain.GetDetailedGrainStatistics(hostsIds: new[] { hosts.First().Key });
 
         await Task.Delay(TimeSpan.FromSeconds(10));
 
@@ -294,8 +256,8 @@ public class SiloTests
         await Task.Delay(TimeSpan.FromSeconds(30));
 
         xx1 = await grain.GetSimpleGrainStatistics();
-        xx2 = await grain.GetRuntimeStatistics(new[] {hosts.First().Key});
-        xx3 = await grain.GetDetailedGrainStatistics(hostsIds: new[] {hosts.First().Key});
+        xx2 = await grain.GetRuntimeStatistics(new[] { hosts.First().Key });
+        xx3 = await grain.GetDetailedGrainStatistics(hostsIds: new[] { hosts.First().Key });
 
         if (Debugger.IsAttached)
         {

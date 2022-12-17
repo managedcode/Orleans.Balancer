@@ -1,5 +1,5 @@
-using Orleans;
-using Orleans.Hosting;
+using ManagedCode.Orleans.Balancer.Attributes;
+using ManagedCode.Orleans.Balancer.Tests.Cluster.Grains;
 using Orleans.TestingHost;
 
 namespace ManagedCode.Orleans.Balancer.Tests.Cluster;
@@ -12,6 +12,9 @@ public class TestSiloConfigurations : ISiloConfigurator
         {
             // services.AddSingleton<T, Impl>(...);
         });
-        siloBuilder.UseOrleansBalancer(o => { });
+        siloBuilder.UseOrleansBalancer(o =>
+        {
+            o.GrainsForDeactivation.Add(typeof(TestGrainInt), DeactivationPriority.High);
+        });
     }
 }

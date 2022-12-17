@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using ManagedCode.Orleans.Balancer.Abstractions;
 using ManagedCode.Orleans.Balancer.Attributes;
 using Microsoft.Extensions.Options;
@@ -12,35 +13,28 @@ namespace ManagedCode.Orleans.Balancer;
 [LocalPlacement]
 public class LocalDeactivatorGrain : Grain, ILocalDeactivatorGrain
 {
-    private readonly OrleansBalancerOptions _options;
+    private readonly Dictionary<string, DeactivationPriority> _grainTypes;
     private readonly SiloAddress[] _localSiloAddresses;
-    private readonly Dictionary<string, int> _grainTypes;
+    private readonly OrleansBalancerOptions _options;
 
     public LocalDeactivatorGrain(
         ILocalSiloDetails siloDetails,
         IOptions<OrleansBalancerOptions> options)
     {
         _options = options.Value;
-        _localSiloAddresses = new[] {siloDetails.SiloAddress};
+        _localSiloAddresses = new[] { siloDetails.SiloAddress };
 
         _grainTypes = AppDomain.CurrentDomain.GetAssemblies()
             .SelectMany(s => s.GetTypes())
             .Where(CanDeactivate)
-            .Select(s => (s.FullName + "," + s.Assembly.GetName().Name, GetPriority(s)))
+            .Select(s => (GetGrainType(s), GetPriority(s)))
             .Distinct()
             .ToDictionary(s => s.Item1, s => s.Item2);
 
         foreach (var (key, value) in _options.GrainsForDeactivation)
         {
-            _grainTypes.TryAdd(key, value);
+            _grainTypes.TryAdd(GetGrainType(key), value);
         }
-    }
-
-    public override Task OnActivateAsync(CancellationToken cancellationToken)
-    {
-        RegisterTimer(CheckAsync, null, _options.TimerIntervalDeactivation, _options.TimerIntervalDeactivation);
-
-        return base.OnActivateAsync(cancellationToken);
     }
 
     public Task InitializeAsync()
@@ -57,9 +51,22 @@ public class LocalDeactivatorGrain : Grain, ILocalDeactivatorGrain
         }
 
         var localActivations = await GetLocalActivationCount();
-        var countToDeactivate = (int) Math.Ceiling(localActivations * percentage);
+        var countToDeactivate = (int)Math.Ceiling(localActivations * percentage);
 
         await DeactivateGrainsAsync(countToDeactivate);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private string GetGrainType(Type type)
+    {
+        return type.FullName + "," + type.Assembly.GetName().Name;
+    }
+
+    public override Task OnActivateAsync(CancellationToken cancellationToken)
+    {
+        RegisterTimer(CheckAsync, null, _options.TimerIntervalDeactivation, _options.TimerIntervalDeactivation);
+
+        return base.OnActivateAsync(cancellationToken);
     }
 
     private async Task CheckAsync(object obj)
@@ -80,7 +87,7 @@ public class LocalDeactivatorGrain : Grain, ILocalDeactivatorGrain
         var grainStatistics =
             await managementGrain.GetDetailedGrainStatistics(_grainTypes.Select(s => s.Key).ToArray(), _localSiloAddresses);
 
-        List<Task> deactivationTasks = new();
+        Queue<Func<Task>> deactivationTasks = new();
 
         foreach (var grainStatistic in grainStatistics.OrderBy(s => _grainTypes[s.GrainType]))
         {
@@ -90,19 +97,18 @@ public class LocalDeactivatorGrain : Grain, ILocalDeactivatorGrain
             }
 
             var addressable = GrainFactory.GetGrain(grainStatistic.GrainId);
-            deactivationTasks.Add(addressable.Cast<IGrainManagementExtension>().DeactivateOnIdle());
+            deactivationTasks.Enqueue(() => addressable.Cast<IGrainManagementExtension>().DeactivateOnIdle());
 
             countToDeactivate--;
         }
 
         var chunks = deactivationTasks
-            .Chunk(_options.DeactivateGrainsAtTheSameTime)
-            .Select(Task.WhenAll)
-            .ToArray();
+            //.Chunk(_options.DeactivateGrainsAtTheSameTime);
+            .Chunk(ThreadPool.ThreadCount / 4); //TODO: Experiment with TheadPool capacity;
 
         foreach (var chunk in chunks)
         {
-            await chunk;
+            await Task.WhenAll(chunk.Select(s => s()));
             await Task.Delay(_options.DelayBetweenDeactivations);
         }
     }
@@ -120,9 +126,14 @@ public class LocalDeactivatorGrain : Grain, ILocalDeactivatorGrain
         return Attribute.GetCustomAttribute(type, typeof(CanBeDeactivatedAttribute)) is not null;
     }
 
-    private static int GetPriority(Type type)
+    private static DeactivationPriority GetPriority(Type type)
     {
         var attribute = Attribute.GetCustomAttribute(type, typeof(CanBeDeactivatedAttribute)) as CanBeDeactivatedAttribute;
+        if (attribute is null)
+        {
+            return DeactivationPriority.Normal;
+        }
+
         return attribute!.Priority;
     }
 }

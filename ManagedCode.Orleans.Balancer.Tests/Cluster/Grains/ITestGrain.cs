@@ -1,8 +1,5 @@
-using Orleans;
-
 namespace ManagedCode.Orleans.Balancer.Tests.Cluster.Grains;
 
-public interface ITestGrain : IGrainWithGuidKey
+public interface ITestGrain : IGrainWithGuidKey, IDoGrain
 {
-    public Task<Guid> Do();
 }

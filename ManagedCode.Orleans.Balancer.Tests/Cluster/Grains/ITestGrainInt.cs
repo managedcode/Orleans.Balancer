@@ -1,8 +1,5 @@
-using Orleans;
-
 namespace ManagedCode.Orleans.Balancer.Tests.Cluster.Grains;
 
-public interface ITestGrainInt : IGrainWithIntegerKey
+public interface ITestGrainInt : IGrainWithIntegerKey, IDoGrain
 {
-    public Task<int> Do();
 }

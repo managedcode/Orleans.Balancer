@@ -3,8 +3,8 @@ using Orleans.Runtime;
 
 namespace ManagedCode.Orleans.Balancer.Tests.Cluster.Grains;
 
-[CanBeDeactivated]
-public class TestGrain : Grain, ITestGrain
+[CanBeDeactivated(DeactivationPriority.Low)]
+public class TestGrainString : Grain, ITestGrainString
 {
     public static int ActivationCount;
     public static int DeactivationCount;

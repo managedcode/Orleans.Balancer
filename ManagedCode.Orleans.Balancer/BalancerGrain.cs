@@ -17,6 +17,12 @@ public class BalancerGrain : Grain, IBalancerGrain
         _options = options.Value;
     }
 
+    public Task InitializeAsync()
+    {
+        // Just for activate grain
+        return Task.CompletedTask;
+    }
+
     public override async Task OnActivateAsync(CancellationToken cancellationToken)
     {
         var managementGrain = GrainFactory.GetGrain<IManagementGrain>(0);
@@ -33,25 +39,19 @@ public class BalancerGrain : Grain, IBalancerGrain
 
         if (hosts.Count > _silos.Length)
         {
-            _ = RebalanceAsync(_silos);
+            _ = ReBalanceAsync(_silos);
         }
 
         _silos = hosts.Select(s => s.Key).ToArray();
     }
 
-    public async Task RebalanceAsync(IEnumerable<SiloAddress> silos)
+    public async Task ReBalanceAsync(IEnumerable<SiloAddress> silos)
     {
         var tasks = silos
             .Select(address => GrainFactory.GetGrain<ILocalDeactivatorGrain>(address.ToParsableString()))
-            .Select(grain => grain.DeactivateGrainsAsync(_options.RebalancingPercentage))
+            .Select(grain => grain.DeactivateGrainsAsync(_options.ReBalancingPercentage))
             .ToList();
 
         await Task.WhenAll(tasks);
-    }
-
-    public Task InitializeAsync()
-    {
-        // Just for activate grain
-        return Task.CompletedTask;
     }
 }

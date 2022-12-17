@@ -82,6 +82,11 @@ public class LocalDeactivatorGrain : Grain, ILocalDeactivatorGrain
 
     private async Task DeactivateGrainsAsync(int countToDeactivate)
     {
+        if (countToDeactivate < 1)
+        {
+            return;
+        }
+
         var managementGrain = GrainFactory.GetGrain<IManagementGrain>(0);
 
         var grainStatistics =
@@ -91,7 +96,7 @@ public class LocalDeactivatorGrain : Grain, ILocalDeactivatorGrain
 
         foreach (var grainStatistic in grainStatistics.OrderBy(s => _grainTypes[s.GrainType]))
         {
-            if (countToDeactivate == 0)
+            if (countToDeactivate <= 0)
             {
                 break;
             }
@@ -103,12 +108,12 @@ public class LocalDeactivatorGrain : Grain, ILocalDeactivatorGrain
         }
 
         var chunks = deactivationTasks
-            //.Chunk(_options.DeactivateGrainsAtTheSameTime);
-            .Chunk(ThreadPool.ThreadCount / 4); //TODO: Experiment with TheadPool capacity;
+            .Chunk(_options.DeactivateGrainsAtTheSameTime);
+            //.Chunk(ThreadPool.ThreadCount / 4); //TODO: Experiment with TheadPool capacity;
 
         foreach (var chunk in chunks)
         {
-            await Task.WhenAll(chunk.Select(s => s()));
+            await Task.WhenAll(chunk.Select(task => task()));
             await Task.Delay(_options.DelayBetweenDeactivations);
         }
     }

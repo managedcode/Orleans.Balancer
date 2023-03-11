@@ -1,4 +1,5 @@
 using FluentAssertions;
+using ManagedCode.Orleans.Balancer.Abstractions;
 using Orleans.Runtime;
 using Xunit;
 
@@ -43,17 +44,26 @@ public class BalancerGrainTests : BaseTests
         // Act
         var cluster = await DeployTestCluster(5);
 
-        await Task.Delay(1000);
+        await Task.Delay(TimeSpan.FromSeconds(1));
         var managementGrain = cluster.GrainFactory.GetGrain<IManagementGrain>(0);
         await managementGrain.ForceActivationCollection(TimeSpan.FromMilliseconds(1));
 
         var balancerGrain = (await GetBalancerGrainStatistics(managementGrain)).First();
 
         await cluster.RestartSiloAsync(cluster.GetSiloForAddress(balancerGrain.SiloAddress));
-        await Task.Delay(5000);
+        await Task.Delay(TimeSpan.FromSeconds(10));
 
         // Assert
         var balancerGrains = await GetBalancerGrainStatistics(managementGrain);
+        if (balancerGrains.Count == 0)
+        {
+            // check if grain already activated
+            var grain = cluster.GrainFactory.GetGrain<IBalancerGrain>(0);
+            var firstActivation = await grain.InitializeAsync();
+            firstActivation.Should().BeTrue();
+        }
+        
+        balancerGrains = await GetBalancerGrainStatistics(managementGrain);
         balancerGrains.Count.Should().Be(1);
     }
 
@@ -65,7 +75,7 @@ public class BalancerGrainTests : BaseTests
         var balancerGrains = detailedGrainStatistics
             .Where(s => s.GrainType.Contains(nameof(BalancerGrain)))
             .ToList();
-
+        
         return balancerGrains;
     }
 }

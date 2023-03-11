@@ -19,9 +19,8 @@ public class Balancer : IStartupTask
 
     public async Task Execute(CancellationToken cancellationToken)
     {
-        await Task.WhenAll(
-            ActivateLocalDeactivatorGrainAsync(),
-            ActivateBalancerGrainAsync());
+        await ActivateBalancerGrainAsync();
+        await ActivateLocalDeactivatorGrainAsync();
     }
 
     private async Task ActivateLocalDeactivatorGrainAsync()

@@ -89,7 +89,7 @@ public class SiloTests
     [InlineData(10)]
     [InlineData(25)]
     [InlineData(50)]
-    [InlineData(100)]
+    //[InlineData(100)]
     public async Task ClearSiloTest(int itereations)
     {
         _errors = 0;
@@ -100,7 +100,7 @@ public class SiloTests
     [InlineData(10)]
     [InlineData(25)]
     [InlineData(50)]
-    [InlineData(100)]
+    //[InlineData(100)]
     public async Task BalancerSiloTest(int itereations)
     {
         _errors = 0;

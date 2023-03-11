@@ -11,16 +11,22 @@ public class BalancerGrain : Grain, IBalancerGrain
 {
     private readonly OrleansBalancerOptions _options;
     private SiloAddress[] _silos = Array.Empty<SiloAddress>();
+    private bool _initialized;
 
     public BalancerGrain(IOptions<OrleansBalancerOptions> options)
     {
         _options = options.Value;
     }
 
-    public Task InitializeAsync()
+    public Task<bool> InitializeAsync()
     {
-        // Just for activate grain
-        return Task.CompletedTask;
+        // First call will return true, others will return false;
+        
+        if (_initialized)
+            return Task.FromResult(false);
+
+        _initialized = true;
+        return Task.FromResult(_initialized);
     }
 
     public override async Task OnActivateAsync(CancellationToken cancellationToken)

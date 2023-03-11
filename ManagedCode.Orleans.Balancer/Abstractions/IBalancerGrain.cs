@@ -4,6 +4,5 @@ namespace ManagedCode.Orleans.Balancer.Abstractions;
 
 public interface IBalancerGrain : IGrainWithIntegerKey
 {
-    [OneWay]
-    Task InitializeAsync();
+    Task<bool> InitializeAsync();
 }

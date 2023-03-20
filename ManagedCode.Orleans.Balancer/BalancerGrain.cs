@@ -28,7 +28,7 @@ public class BalancerGrain : Grain, IBalancerGrain
         _initialized = true;
         return Task.FromResult(_initialized);
     }
-
+    
     public override async Task OnActivateAsync(CancellationToken cancellationToken)
     {
         var managementGrain = GrainFactory.GetGrain<IManagementGrain>(0);
@@ -36,6 +36,11 @@ public class BalancerGrain : Grain, IBalancerGrain
         _silos = hosts.Select(s => s.Key).ToArray();
 
         RegisterTimer(CheckAsync, null, _options.TimerIntervalRebalancing, _options.TimerIntervalRebalancing);
+    }
+
+    public override Task OnDeactivateAsync(DeactivationReason reason, CancellationToken cancellationToken)
+    {
+        return base.OnDeactivateAsync(reason, cancellationToken);
     }
 
     private async Task CheckAsync(object obj)

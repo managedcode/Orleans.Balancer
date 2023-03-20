@@ -46,6 +46,8 @@ public class LocalDeactivatorTests : BaseTests
         var managementGrain = cluster.GrainFactory.GetGrain<IManagementGrain>(0);
         await managementGrain.ForceActivationCollection(TimeSpan.FromMilliseconds(1));
 
+        //await Task.Delay(TimeSpan.FromMinutes(2.5));
+
         var detailedGrainStatistics = await managementGrain.GetDetailedGrainStatistics();
 
         // Assert

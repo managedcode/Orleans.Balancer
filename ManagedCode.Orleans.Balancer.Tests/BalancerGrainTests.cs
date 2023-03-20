@@ -57,10 +57,8 @@ public class BalancerGrainTests : BaseTests
         var balancerGrains = await GetBalancerGrainStatistics(managementGrain);
         if (balancerGrains.Count == 0)
         {
-            // check if grain already activated
-            var grain = cluster.GrainFactory.GetGrain<IBalancerGrain>(0);
-            var firstActivation = await grain.InitializeAsync();
-            firstActivation.Should().BeTrue();
+            // wait 5 min when startup task activated grains again
+            await Task.Delay(TimeSpan.FromMinutes(2.5));
         }
         
         balancerGrains = await GetBalancerGrainStatistics(managementGrain);

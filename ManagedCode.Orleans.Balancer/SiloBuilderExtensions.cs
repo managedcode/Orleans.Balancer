@@ -11,8 +11,7 @@ public static class SiloBuilderExtensions
 
     public static ISiloBuilder UseOrleansBalancer(this ISiloBuilder siloBuilder, Action<OrleansBalancerOptions> options)
     {
-        siloBuilder.AddStartupTask<Balancer>();
-        siloBuilder.AddPlacementDirector<LocalPlacementStrategy, LocalPlacementDirector>();
+        siloBuilder.AddStartupTask<BalancerStartupTask>();
 
         siloBuilder.ConfigureServices(serviceCollection =>
         {

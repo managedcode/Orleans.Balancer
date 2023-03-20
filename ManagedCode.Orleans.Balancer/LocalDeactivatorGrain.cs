@@ -4,13 +4,14 @@ using ManagedCode.Orleans.Balancer.Attributes;
 using Microsoft.Extensions.Options;
 using Orleans.Concurrency;
 using Orleans.Core.Internal;
+using Orleans.Placement;
 using Orleans.Runtime;
 
 namespace ManagedCode.Orleans.Balancer;
 
 [Reentrant]
 [KeepAlive]
-[LocalPlacement]
+[PreferLocalPlacement]
 public class LocalDeactivatorGrain : Grain, ILocalDeactivatorGrain
 {
     private readonly Dictionary<string, DeactivationPriority> _grainTypes;

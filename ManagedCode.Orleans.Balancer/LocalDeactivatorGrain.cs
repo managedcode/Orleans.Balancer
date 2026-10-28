@@ -103,7 +103,7 @@ public class LocalDeactivatorGrain : Grain, ILocalDeactivatorGrain
             }
 
             var addressable = GrainFactory.GetGrain(grainStatistic.GrainId);
-            deactivationTasks.Enqueue(() => addressable.Cast<IGrainManagementExtension>().DeactivateOnIdle());
+            deactivationTasks.Enqueue(() => addressable.Cast<IGrainManagementExtension>().DeactivateOnIdle().AsTask());
 
             countToDeactivate--;
         }
